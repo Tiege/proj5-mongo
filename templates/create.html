@@ -20,7 +20,6 @@
    <!-- Our own style sheet -->
    <link rel="stylesheet" href="/static/css/memos.css" />
 
-
 </head>
 <body>
 <div class="container">
@@ -37,50 +36,48 @@
   {% endif %}
 {% endwith %}
 
-<form method="PUT" action="_create">
+<form method="PUT" action="_addMemo">
+<div>
+<div><b>Date: </d></div>
 <div class="row">
-    <div class="col-md-2">
+   <div class="col-md-2">
     <input type="text" class="form-control"
-     name="Date" value="" id="date"/>
-  </div>
-  <div class="col-md-10">
+     name="Date" value="" id="Date"/>
+   </div>
+</div>
+<div><b>Message: </b></div>
+<div class="row">
+  <div class="col-md-2">
     <input type="text" class="form-control"
-      name="Memo" value="" id="message" />
+      name="Memo" value="" id="Memo" />
   </div>
+</div><br>
 <button name="button" class="btn btn-default" >Add Memo</a>
- </div>
+</div>
 </form>
 </div> 
 
 <script type="text/javascript">
 
 	$SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
-
-		$(document).ready(function(){
-   // Do the following when the page is finished loading
-
-      // When a field named 'distance' is changed ...
-      $('button[name="button"]').clicked(
 			
-			function () {
-			var dt = document.getElementById("date").value;
-			//var msg = document.getElementById("message").value;
-			var msg = "winner";			
+		/*This javascript occurs when Add Memo is clicked
+		 *It grabs the date and message from the input fields
+		 *and sends them to our python /_addMemo @route where
+		 *it will use that info to submit a memo to the db and
+		 *refresh the page*/
+			function submitMemo() {
+				var dt = $('#Date').val();  //date
+				var msg = $('#Memo').val(); //message
+					
+				$.getJSON($SCRIPT_ROOT + '/_addMemo',
+				{ date: dt, memo: msg },
+				function() {
+				setTimeout(window.location.
+				reload(), 3000);}
+				);
+			};
 
-			$.getJSON($SCRIPT_ROOT + '/_create',
-			{ date: $('input[name="Date"]').val(), memo: msg },
-			function(e) {});
-
-
-			 // AJAX request
-             /* $.ajax( { url : $SCRIPT_ROOT + '/_hcreate',
-		  type : "GET",
-		  contentType : "application/json; charset=utf-8",
-                  data : { date: "seven" }, 
-		  success: function(e){},
-		  dataType: 'json' });*/
-		});
-	});
 </script>
 </body>
 </html>

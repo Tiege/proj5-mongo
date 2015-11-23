@@ -30,7 +30,7 @@ from dateutil import tz  # For interpreting local times
 # Mongo database
 from pymongo import MongoClient
 
-
+from bson import ObjectId
 ###
 # Globals
 ###
@@ -38,6 +38,7 @@ import CONFIG
 
 app = flask.Flask(__name__)
 
+#Establish our mongo database connection
 try: 
     dbclient = MongoClient(CONFIG.MONGO_URL)
     db = dbclient.memos
@@ -54,6 +55,7 @@ app.secret_key = str(uuid.uuid4())
 # Pages
 ###
 
+#the main page which displays any memo currently held in our database
 @app.route("/")
 @app.route("/index")
 def index():
@@ -64,21 +66,30 @@ def index():
   return flask.render_template('index.html')
 
 
-# We don't have an interface for creating memos yet
-@app.route("/_create")
+# Our interface to create memos
+@app.route("/create")
 def create():
      app.logger.debug("Create")
-
-     dt = request.args.get('date', 0, type=str)
-     #dat = dt['date']
-     msg = request.args.get('memo', 0, type=str)
-     print(dt);
-     print(msg);
-     #date = "12-10-2012";
-     #msg = "Went to the store today";
-     put_memo(date, msg);
-     
      return flask.render_template('create.html')
+
+#Function to add memo to database
+#Receives date and msg from user input and sends to put function
+@app.route("/_addMemo")
+def addMemo():
+     app.logger.debug("addMemo")
+     date = request.args.get('Date', 0, type=str)
+     
+     #Check for valid date entry
+     validDate = format_arrow_date(date)
+     if(validDate == "(bad date)"):
+         print(date)
+         flask.flash("Invalid date format! Use: MM-DD-YYYY")
+         return flask.redirect(flask.url_for("create"))
+
+     msg = request.args.get('Memo', 0, type=str)
+     put_memo(validDate, msg)
+     
+     return flask.redirect(flask.url_for("index"))
 
 @app.errorhandler(404)
 def page_not_found(error):
@@ -92,13 +103,13 @@ def page_not_found(error):
 # Functions used within the templates
 #
 #################
-
-# NOT TESTED with this application; may need revision 
+ 
 @app.template_filter( 'fmtdate' )
 def format_arrow_date( date ):
-     try: 
-         normal = arrow.get( date )
-         return normal.to('local').format("ddd MM/DD/YYYY")
+     #check if date format is valid: only accepts MM-DD-YYYY
+     try:
+         normal = arrow.get(datetime.datetime.strptime(date, '%m-%d-%Y')).to('local')
+         return normal 
      except:
          return "(bad date)"
 
@@ -109,7 +120,7 @@ def humanize_arrow_date( date ):
     Output should be "today", "yesterday", "in 5 days", etc.
     Arrow will try to humanize down to the minute, so we
     need to catch 'today' as a special case. 
-    """
+    """   
     try:
         then = arrow.get(date).to('local')
         now = arrow.utcnow().to('local')
@@ -137,7 +148,7 @@ def get_memos():
     records = [ ]
     for record in collection.find( { "type": "dated_memo" } ):
         record['date'] = arrow.get(record['date']).isoformat()
-        del record['_id']
+        record['_id'] = str(record['_id'])
         records.append(record)
     return records 
 
@@ -148,7 +159,6 @@ def put_memo(dt, mem):
      Args:
         dt: Datetime (arrow) object
         mem: Text of memo
-     NOT TESTED YET
      """
      record = { "type": "dated_memo", 
                 "date": dt.to('utc').naive,
@@ -157,9 +167,21 @@ def put_memo(dt, mem):
      collection.insert(record)
      return
 
-#def del_memo(id ):
-
-
+@app.route('/delMemo', methods=['GET', 'POST'])
+def delMemo():
+     """
+     Delete memo from database
+     -Gets _id for memo from index page to remove said memo
+     """
+     if request.method == 'POST':
+         for key in request.form:
+            if key.startswith('delete.'):#_id form: "delete.(ObjectId)"
+                _id = key.partition('.')[-1]
+     
+     #Removes any document from db with matching _id
+     collection.remove( {"_id" : ObjectId(_id)} )
+     
+     return flask.redirect(flask.url_for("index"))
 
 if __name__ == "__main__":
     # App is created above so that it will

@@ -24,40 +24,34 @@
 </head>
 <body>
 <div class="container">
-
-<!-- Flashed messages before content -->
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class=flashes>
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
-
 <h1>Memos</h1>
-
+<div>
+<div align=center><a href ="/create"><button>Create New Memo</button></a></div><br><br>
+<div>
+<!--List the memos in order from oldest-top to most recent-bottom with
+message and humanized added time deviated from current time. Each memo
+has a delete button to remove it from the database-->
 {% if session.memos %}
-    {% for memo in session.memos %}
+    {% for memo in session.memos|sort(attribute='date') %}
   <div class="memo">
   <div class="row">
-  <div class="col-md-2">
-    {{ memo.date | humanize }}
-  </div>
   <div class="col-md-10">
     {{ memo.text }}
   </div>
-<button type="button" id="delete" onclick="">Delete</button>	
+  <div class="col-md-2">
+    {{ memo.date | humanize }}
+  <form method="Post" action="/delMemo">
+<input type="submit" name="delete.{{ memo._id }}" value="Delete">
+</form>	
+  </div>
   </div> <!-- row -->
   </div> <!-- memo -->
   {% endfor %}
 {% else %}
   <p>No memos for you. </p>  
 {% endif %}
-
- 
-
+</div>
+</div>
 </div> <!-- container -->
 </body>
 </html>
